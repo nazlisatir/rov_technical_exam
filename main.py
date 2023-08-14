@@ -1,23 +1,29 @@
 import cv2 as cv
 import numpy as np
+import Circle
 
-CIRCLE_RADIUS = 5
 CAMERA_WIDTH = 640
 CAMERA_HEIGHT = 480
 CENTER_COORDINATES = (320, 240)
+
+
 def find_direction(pos1, pos2):
     diff = pos1 - pos2
-    if (diff < 0):
+    if diff < 0:
         print('-', diff, ' unit')
     else:
         print('+', diff, ' unit')
+
+
 def print_path(circle_center):
-    # roll
+    # Roll
     print('Roll: ')
     find_direction(circle_center[0], CENTER_COORDINATES[0])
-    # pitch
+    # Pitch
     print('Pitch: ')
     find_direction(circle_center[1], CENTER_COORDINATES[1])
+
+
 def main():
     # Kamera ayarları
     camera = cv.VideoCapture(0)
@@ -30,7 +36,7 @@ def main():
 
     # Görüntülemede sorun varsa döngüyü sonlandırır
     while True:
-        basarili, frame = camera.read()
+        ret, frame = camera.read()
 
         # Görüntüyü HSV renk uzayına dönüştürür
         hsv = cv.cvtColor(frame, cv.COLOR_BGR2HSV)
@@ -41,32 +47,41 @@ def main():
         # Maskeyi ortalama bir görüntüye dönüştür
         converted_mask = cv.medianBlur(mask, 5)
 
-        # calculate moments of binary image
+        # Halkaları algılar
+        # circles = cv.HoughCircles(converted_mask, cv.HOUGH_GRADIENT, 1, 10)
+
+        # if circles is not None:
+        # circles = np.uint16(np.around(circles))
+        # for i in circles[0, :]:
+        # circle_center = (i[0], i[1])
+        # circle center
+        # cv.circle(frame, circle_center, 1, (0, 100, 100), 3)
+        # circle outline
+        # radius = i[2]
+        # cv.circle(frame, circle_center, radius, (255, 0, 255), 3)
+        # circle = Circle(i[0], i[1])
+
+        # Momenti bulur
         M = cv.moments(converted_mask)
         (cX, cY) = CENTER_COORDINATES
 
-        # find circle center
-        if (M["m00"] != 0):
+        # Halkanın merkezini bulur
+        if M["m00"] != 0:
             # calculate x,y coordinate of center
             cX = int(M["m10"] / M["m00"])
             cY = int(M["m01"] / M["m00"])
             cv.circle(frame, (cX, cY), 5, (255, 255, 255), -1)
 
-        # draw line between circle-center and camera-center
+        # Kamera merkezi ve daire merkezi arasında çizgi çizer
         cv.line(frame, (cX, cY), CENTER_COORDINATES, (0, 255, 0), 2)
         cv.circle(frame, CENTER_COORDINATES, 1, (255, 0, 0), 3)
 
-        # print path
+        # Gidilecek yolu çizer
         print_path((cX, cY))
 
-        # Display the resulting frame
         cv.imshow('frame', frame)
 
-        # the 'q' button is set as the
-        # quitting button you may use any
-        # desired button of your choice
-
-        if not basarili or cv.waitKey(1) & 0xFF == ord('q'):
+        if not ret or cv.waitKey(1) & 0xFF == ord('q'):
             break
 
 
